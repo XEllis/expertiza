@@ -5,6 +5,7 @@ class ReviewMappingController < ApplicationController
   require 'gchart'
   # helper :dynamic_review_assignment
   helper :submitted_content
+  helper :automatic_review_mapping
 
   @@time_create_last_review_mapping_record = nil
 
@@ -285,17 +286,14 @@ class ReviewMappingController < ApplicationController
         teams << team
       end
     end
-    student_review_num = params[:num_reviews_per_student].to_i
-    submission_review_num = params[:num_reviews_per_submission].to_i
-    calibrated_artifacts_num = params[:num_calibrated_artifacts].to_i
-    uncalibrated_artifacts_num = params[:num_uncalibrated_artifacts].to_i
-
-    if calibrated_artifacts_num == 0 and uncalibrated_artifacts_num == 0
-      if student_review_num == 0 and submission_review_num == 0
+    
+    set_params = AutomaticReviewMappingHelper::AutomaticReviewMapping.new.set_parameters(params)
+    if set_params.calibrated_artifacts_num == 0 and set_params.uncalibrated_artifacts_num == 0
+      if set_params.student_review_num == 0 and set_params.submission_review_num == 0
         flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student)."
-      elsif (student_review_num != 0 and submission_review_num == 0) or (student_review_num == 0 and submission_review_num != 0)
+      elsif (set_params.student_review_num != 0 and set_params.submission_review_num == 0) or (set_params.student_review_num == 0 and set_params.submission_review_num != 0)
         # REVIEW: mapping strategy
-        automatic_review_mapping_strategy(assignment_id, participants, teams, student_review_num, submission_review_num)
+        automatic_review_mapping_strategy(assignment_id, participants, teams, set_params.student_review_num, set_params.submission_review_num)
       else
         flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student), not both."
       end
