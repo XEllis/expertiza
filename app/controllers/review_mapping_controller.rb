@@ -271,36 +271,34 @@ class ReviewMappingController < ApplicationController
   end
 
   def automatic_review_mapping
-    # created an object of the helper class
-    # all the parameters used in this method are defined in the helper class. Refer automatic_review_mapping_helper
-    parameters = AutomaticReviewMappingHelper::AutomaticReviewMapping.new(params)
+   
+    helper = Automatic.new(params)
     # Create teams if its an individual assignment.
-    parameters.create_teams_if_team_is_empty_for_max_size_one
-
-    if parameters.calibrated_artifacts_num == 0 and parameters.uncalibrated_artifacts_num == 0
-      if parameters.student_review_num == 0 and parameters.submission_review_num == 0
+    helper.create_teams_if_individual_assignment
+      
+      if helper.student_review_num == 0 and helper.submission_review_num == 0
         flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student)."
-      elsif (parameters.student_review_num != 0 and parameters.submission_review_num == 0) or (parameters.student_review_num == 0 and parameters.submission_review_num != 0)
+      elsif (helper.student_review_num != 0 and helper.submission_review_num == 0) or (helper.student_review_num == 0 and helper.submission_review_num != 0)
         # REVIEW: mapping strategy
-        automatic_review_mapping_strategy(parameters.assignment_id, parameters.participants, parameters.teams, parameters.student_review_num, parameters.submission_review_num)
+        automatic_review_mapping_strategy(helper.assignment_id, helper.participants, helper.teams, helper.student_review_num, helper.submission_review_num)
       else
         flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student), not both."
       end
     else
       teams_with_calibrated_artifacts = []
       teams_with_uncalibrated_artifacts = []
-      ReviewResponseMap.where(reviewed_object_id: parameters.assignment_id, calibrate_to: 1).each do |response_map|
+      ReviewResponseMap.where(reviewed_object_id: helper.assignment_id, calibrate_to: 1).each do |response_map|
         teams_with_calibrated_artifacts << AssignmentTeam.find(response_map.reviewee_id)
       end
-      teams_with_uncalibrated_artifacts = parameters.teams - teams_with_calibrated_artifacts
+      teams_with_uncalibrated_artifacts = helper.teams - teams_with_calibrated_artifacts
       # REVIEW: mapping strategy
-      automatic_review_mapping_strategy(parameters.assignment_id, parameters.participants, teams_with_calibrated_artifacts.shuffle!, parameters.calibrated_artifacts_num, 0)
+      automatic_review_mapping_strategy(helper.assignment_id, helper.participants, teams_with_calibrated_artifacts.shuffle!, helper.calibrated_artifacts_num, 0)
       # REVIEW: mapping strategy
       # since after first mapping, participants (delete_at) will be nil
       participants = AssignmentParticipant.where(parent_id: params[:id].to_i).to_a.reject {|p| p.can_review == false }.shuffle!
-      automatic_review_mapping_strategy(parameters.assignment_id, parameters.participants, teams_with_uncalibrated_artifacts.shuffle!, parameters.uncalibrated_artifacts_num, 0)
+      automatic_review_mapping_strategy(helper.assignment_id, helper.participants, teams_with_uncalibrated_artifacts.shuffle!, helper.uncalibrated_artifacts_num, 0)
     end
-    redirect_to action: 'list_mappings', id: parameters.assignment_id
+    redirect_to action: 'list_mappings', id: helper.assignment_id
   end
 
   def automatic_review_mapping_strategy(assignment_id,
@@ -593,3 +591,50 @@ class ReviewMappingController < ApplicationController
     end
   end
 end
+class Automatic
+
+  attr_accessor :student_review_num, :submission_review_num, :calibrated_artifacts_num, :uncalibrated_artifacts_num, :assignment_id, :participants, :teams, :max_team_size
+    
+    def initialize(params)
+    # Set instance variables to the values obtained from the params
+        @student_review_num = params[:num_reviews_per_student].to_i
+        @submission_review_num = params[:num_reviews_per_submission].to_i
+        @calibrated_artifacts_num = params[:num_calibrated_artifacts].to_i
+        @uncalibrated_artifacts_num = params[:num_uncalibrated_artifacts].to_i
+        @assignment_id = params[:id].to_i
+        @participants = AssignmentParticipant.where(parent_id: params[:id].to_i).to_a.reject {|p| p.can_review == false }.shuffle!
+        @teams = AssignmentTeam.where(parent_id: params[:id].to_i).to_a.shuffle!
+        @max_team_size = Integer(params[:max_team_size]) # Assignment.find(assignment_id).max_team_size 
+    end 
+
+    def create_teams_if_individual_assignment
+
+        if @teams.empty? and @max_team_size == 1
+           @participants.each do |participant|
+           user = participant.user
+           next if TeamsUser.team_id(@assignment_id, user.id)
+           team = AssignmentTeam.create_team_and_node(@assignment_id)
+           ApplicationController.helpers.create_team_users(participant.user, team.id)
+           @teams << team
+           end
+        end
+    end
+
+    def all_artifacts_num_zero?
+        if @calibrated_artifacts_num == 0 and @uncalibrated_artifacts_num == 0
+    end
+
+    def check_values_of_review_num_to_assign_reveiws
+        if @student_review_num == 0 and @submission_review_num == 0
+        flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student)."
+        elsif (@student_review_num != 0 and @submission_review_num == 0) or (@student_review_num == 0 and @submission_review_num != 0)
+        # REVIEW: mapping strategy
+        automatic_review_mapping_strategy(@assignment_id, @participants, @teams, @student_review_num, @submission_review_num)
+        else
+        flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student), not both."
+        end
+    end
+
+    
+end
+
