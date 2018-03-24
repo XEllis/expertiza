@@ -271,6 +271,7 @@ class ReviewMappingController < ApplicationController
   end
 
   def automatic_review_mapping
+    param = AutomaticReviewMappingHelper::Automatic_Review_Mapping.new.set_parameters()
     assignment_id = params[:id].to_i
     participants = AssignmentParticipant.where(parent_id: params[:id].to_i).to_a.reject {|p| p.can_review == false }.shuffle!
     teams = AssignmentTeam.where(parent_id: params[:id].to_i).to_a.shuffle!
@@ -285,10 +286,6 @@ class ReviewMappingController < ApplicationController
         teams << team
       end
     end
-    student_review_num = params[:num_reviews_per_student].to_i
-    submission_review_num = params[:num_reviews_per_submission].to_i
-    calibrated_artifacts_num = params[:num_calibrated_artifacts].to_i
-    uncalibrated_artifacts_num = params[:num_uncalibrated_artifacts].to_i
 
     if calibrated_artifacts_num == 0 and uncalibrated_artifacts_num == 0
       if student_review_num == 0 and submission_review_num == 0
@@ -335,7 +332,7 @@ class ReviewMappingController < ApplicationController
     execute_peer_review_strategy(assignment_id, teams, num_participants,
                                  student_review_num, num_reviews_per_team,
                                  participants, participants_hash)
-    # after assigning peer reviews for each team,
+    # after assigning peer reviews for each team, 
     # if there are still some peer reviewers not obtain enough peer review,
     # just assign them to valid teams
     assign_reviewers_for_team(assignment_id, student_review_num, participants_hash,
