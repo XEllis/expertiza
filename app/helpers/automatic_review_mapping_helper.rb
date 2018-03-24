@@ -1,9 +1,9 @@
 module AutomaticReviewMappingHelper
-	class Automatic_Review_Mapping
+	class AutomaticReviewMapping
 		
 		attr_accessor :student_review_num, :submission_review_num, :calibrated_artifacts_num, :uncalibrated_artifacts_num
 		
-		def set_parameters()
+		def initialize(params)
 		# Set instance variables to the values obtained from the params
 			@student_review_num = params[:num_reviews_per_student].to_i
     		@submission_review_num = params[:num_reviews_per_submission].to_i
