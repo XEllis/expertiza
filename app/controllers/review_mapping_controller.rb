@@ -271,11 +271,13 @@ class ReviewMappingController < ApplicationController
   end
 
   def automatic_review_mapping
-   
-    helper = Automatic.new(params)
+    # All the parameters and methods are defined in the AutomaticReviewMapControllerAssist class defined below
+    helper = AutomaticReviewMapControllerAssist.new(params)
     # Create teams if its an individual assignment.
     helper.create_teams_if_individual_assignment
-    helper.all_artifacts_num_zero(flash,params)
+    # checks the values of calibrated and uncalibrated artifacts and calls the respective methods for assigning reviews.
+    helper.check_all_artifacts_num_before_assigning_review(flash,params)
+    # renders view
     redirect_to action: 'list_mappings', id: helper.assignment_id
   end
 
@@ -570,7 +572,9 @@ class ReviewMappingController < ApplicationController
     end
   end
 end
-class Automatic
+
+
+class AutomaticReviewMapControllerAssist
 
   attr_accessor :student_review_num, :submission_review_num, :calibrated_artifacts_num, :uncalibrated_artifacts_num, :assignment_id, :participants, :teams, :max_team_size, :teams_with_calibrated_artifacts, :teams_with_uncalibrated_artifacts
     
@@ -589,43 +593,43 @@ class Automatic
     end 
 
     
-
+    # create teams if it is an individual assignment
     def create_teams_if_individual_assignment
 
         if @teams.empty? and @max_team_size == 1
            @participants.each do |participant|
-           user = participant.user
-           next if TeamsUser.team_id(@assignment_id, user.id)
+           next if TeamsUser.team_id(@assignment_id, participant.user.id)
            team = AssignmentTeam.create_team_and_node(@assignment_id)
            ApplicationController.helpers.create_team_users(participant.user, team.id)
            @teams << team
            end
         end
     end
-
-    def all_artifacts_num_zero(flash,params)
-        obj = ::ReviewMappingController.new()
+    # check the values of calibrated and uncalibrated artifacts to call the respective methods for assigning reviews
+    def check_all_artifacts_num_before_assigning_review(flash,params)
+        review_mapping_controller_instance = ::ReviewMappingController.new()
         if @calibrated_artifacts_num == 0 and @uncalibrated_artifacts_num == 0
-           check_values_of_review_num_to_assign_reveiws(flash,obj)
+           all_artifacts_num_zero(flash,review_mapping_controller_instance)
         else
-           all_artifacts_num_not_zero(obj,params)
+           all_artifacts_num_not_zero(review_mapping_controller_instance,params)
         end
 
     end
 
-    def check_values_of_review_num_to_assign_reveiws(flash,obj)
+    # This method is called if all the artifacts values are zero.
+    def all_artifacts_num_zero(flash,review_mapping_controller_instance)
         
         if @student_review_num == 0 and @submission_review_num == 0
             flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student)."
         elsif (@student_review_num != 0 and @submission_review_num == 0) or (@student_review_num == 0 and @submission_review_num != 0)
         # REVIEW: mapping strategy
-            obj.automatic_review_mapping_strategy(@assignment_id, @participants, @teams, @student_review_num, @submission_review_num)
+            review_mapping_controller_instance.automatic_review_mapping_strategy(@assignment_id, @participants, @teams, @student_review_num, @submission_review_num)
         else
             flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student), not both."
         end
     end
-
-    def all_artifacts_num_not_zero(obj,params)
+    # This method is called any or all of the artifacts values are non zero
+    def all_artifacts_num_not_zero(review_mapping_controller_instance,params)
         @teams_with_calibrated_artifacts = []
         @teams_with_uncalibrated_artifacts = []
 
@@ -635,11 +639,11 @@ class Automatic
       
         @teams_with_uncalibrated_artifacts = @teams - @teams_with_calibrated_artifacts
          # REVIEW: mapping strategy
-        obj.automatic_review_mapping_strategy(@assignment_id, @participants, @teams_with_calibrated_artifacts.shuffle!, @calibrated_artifacts_num, 0)
+        review_mapping_controller_instance.automatic_review_mapping_strategy(@assignment_id, @participants, @teams_with_calibrated_artifacts.shuffle!, @calibrated_artifacts_num, 0)
         # REVIEW: mapping strategy
         # since after first mapping, participants (delete_at) will be nil
         @participants = AssignmentParticipant.where(parent_id: params[:id].to_i).to_a.reject {|p| p.can_review == false }.shuffle!
-        obj.automatic_review_mapping_strategy(@assignment_id, @participants, @teams_with_uncalibrated_artifacts.shuffle!, @uncalibrated_artifacts_num, 0)
+        review_mapping_controller_instance.automatic_review_mapping_strategy(@assignment_id, @participants, @teams_with_uncalibrated_artifacts.shuffle!, @uncalibrated_artifacts_num, 0)
 
     end
 
