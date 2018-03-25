@@ -2,3 +2,4 @@
 --profile
 --fail-fast
 --require rails_helper
+--format documentation 

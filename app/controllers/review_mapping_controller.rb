@@ -617,12 +617,12 @@ class Automatic < ReviewMappingController
 
     def check_values_of_review_num_to_assign_reveiws
         if @student_review_num == 0 and @submission_review_num == 0
-            #error_message
+            error_message
         elsif (@student_review_num != 0 and @submission_review_num == 0) or (@student_review_num == 0 and @submission_review_num != 0)
         # REVIEW: mapping strategy
             automatic_review_mapping_strategy(@assignment_id, @participants, @teams, @student_review_num, @submission_review_num)
         else
-            #error_message
+            error_message
         end
     end
 
