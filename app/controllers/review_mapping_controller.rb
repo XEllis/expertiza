@@ -282,16 +282,21 @@ class ReviewMappingController < ApplicationController
     end
   end
 
+ # check the values if caliberated and uncaliberated artifacts num and call different methods according to the values
   def check_artifacts_num(calibrated_artifacts_num,uncalibrated_artifacts_num,student_review_num,submission_review_num,assignment_id,participants,teams)
     if calibrated_artifacts_num == 0 and uncalibrated_artifacts_num == 0
+        #if both the artificats num values are zero check review numbers and assign the reviews.
         check_review_numbers_to_assign_reviews(student_review_num,submission_review_num,assignment_id,participants,teams)
     else
+        #if both the artifacts num values are non zero , separate the caliberated and uncaliberated teams and call the method
       artifacts_num_not_equal_zero(assignment_id,teams,participants,calibrated_artifacts_num,uncalibrated_artifacts_num)
     end
   
   end
 
+# checks the values of the student review numbers and assigns reviews if non zero or displays appropriate error messages if zero
   def check_review_numbers_to_assign_reviews(student_review_num,submission_review_num,assignment_id,participants,teams)
+    
     if student_review_num == 0 and submission_review_num == 0
         flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student)."
       elsif (student_review_num != 0 and submission_review_num == 0) or (student_review_num == 0 and submission_review_num != 0)
