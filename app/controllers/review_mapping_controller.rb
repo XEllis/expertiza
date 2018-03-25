@@ -275,13 +275,10 @@ class ReviewMappingController < ApplicationController
     helper = Automatic.new(params)
     # Create teams if its an individual assignment.
     helper.create_teams_if_individual_assignment
-    helper.all_artifacts_num_zero()
+    helper.all_artifacts_num_zero(flash,params)
     redirect_to action: 'list_mappings', id: helper.assignment_id
   end
 
-  def error_message
-    flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student), not both."
-  end
 
   def automatic_review_mapping_strategy(assignment_id,
                                         participants, teams, student_review_num = 0,
@@ -573,9 +570,9 @@ class ReviewMappingController < ApplicationController
     end
   end
 end
-class Automatic < ReviewMappingController
+class Automatic
 
-  attr_accessor :student_review_num, :submission_review_num, :calibrated_artifacts_num, :uncalibrated_artifacts_num, :assignment_id, :participants, :teams, :max_team_size
+  attr_accessor :student_review_num, :submission_review_num, :calibrated_artifacts_num, :uncalibrated_artifacts_num, :assignment_id, :participants, :teams, :max_team_size, :teams_with_calibrated_artifacts, :teams_with_uncalibrated_artifacts
     
     def initialize(params)
     # Set instance variables to the values obtained from the params
@@ -606,27 +603,29 @@ class Automatic < ReviewMappingController
         end
     end
 
-    def all_artifacts_num_zero
+    def all_artifacts_num_zero(flash,params)
+        obj = ::ReviewMappingController.new()
         if @calibrated_artifacts_num == 0 and @uncalibrated_artifacts_num == 0
-           check_values_of_review_num_to_assign_reveiws
+           check_values_of_review_num_to_assign_reveiws(flash,obj)
         else
-           all_artifacts_num_not_zero
+           all_artifacts_num_not_zero(obj,params)
         end
 
     end
 
-    def check_values_of_review_num_to_assign_reveiws
+    def check_values_of_review_num_to_assign_reveiws(flash,obj)
+        
         if @student_review_num == 0 and @submission_review_num == 0
-            error_message
+            flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student)."
         elsif (@student_review_num != 0 and @submission_review_num == 0) or (@student_review_num == 0 and @submission_review_num != 0)
         # REVIEW: mapping strategy
-            automatic_review_mapping_strategy(@assignment_id, @participants, @teams, @student_review_num, @submission_review_num)
+            obj.automatic_review_mapping_strategy(@assignment_id, @participants, @teams, @student_review_num, @submission_review_num)
         else
-            error_message
+            flash[:error] = "Please choose either the number of reviews per student or the number of reviewers per team (student), not both."
         end
     end
 
-    def all_artifacts_num_not_zero
+    def all_artifacts_num_not_zero(obj,params)
         @teams_with_calibrated_artifacts = []
         @teams_with_uncalibrated_artifacts = []
 
@@ -636,11 +635,11 @@ class Automatic < ReviewMappingController
       
         @teams_with_uncalibrated_artifacts = @teams - @teams_with_calibrated_artifacts
          # REVIEW: mapping strategy
-        automatic_review_mapping_strategy(@assignment_id, @participants, @teams_with_calibrated_artifacts.shuffle!, @calibrated_artifacts_num, 0)
+        obj.automatic_review_mapping_strategy(@assignment_id, @participants, @teams_with_calibrated_artifacts.shuffle!, @calibrated_artifacts_num, 0)
         # REVIEW: mapping strategy
         # since after first mapping, participants (delete_at) will be nil
         @participants = AssignmentParticipant.where(parent_id: params[:id].to_i).to_a.reject {|p| p.can_review == false }.shuffle!
-        automatic_review_mapping_strategy(@assignment_id, @participants, @teams_with_uncalibrated_artifacts.shuffle!, @uncalibrated_artifacts_num, 0)
+        obj.automatic_review_mapping_strategy(@assignment_id, @participants, @teams_with_uncalibrated_artifacts.shuffle!, @uncalibrated_artifacts_num, 0)
 
     end
 
