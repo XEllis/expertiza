@@ -460,25 +460,7 @@ describe ReviewMappingController do
       end
     end
 
-    context 'when teams is empty, max team size is 1 and when review params are not 0' do
-      it 'shows an error flash message and redirects to review_mapping#list_mappings page' do
-        allow(TeamsUser).to receive(:team_id).with(1, 2).and_return(true)
-        allow(TeamsUser).to receive(:team_id).with(1, 3).and_return(false)
-        allow(AssignmentTeam).to receive(:create_team_and_node).with(1).and_return(double('AssignmentTeam', id: 1))
-        allow(ApplicationController).to receive_message_chain(:helpers, :create_team_users).with(no_args).with(user, 1).and_return(true)
-        params = {
-          id: 1,
-          max_team_size: 1,
-          num_reviews_per_student: 1,
-          num_reviews_per_submission: 4,
-          num_calibrated_artifacts: 0,
-          num_uncalibrated_artifacts: 0
-        }
-        post :automatic_review_mapping, params
-        expect(flash[:error]).to eq('Please choose either the number of reviews per student or the number of reviewers per team (student), not both.')
-        expect(response).to redirect_to('/review_mapping/list_mappings?id=1')
-      end
-    end
+
   end
 
   describe '#automatic_review_mapping_staggered' do
