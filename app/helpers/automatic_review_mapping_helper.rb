@@ -1,5 +1,5 @@
 module AutomaticReviewMappingHelper
-	class AutomaticReviewMappingHelper
+	class AutomaticReviewMappingHelper 
 
 		attr_accessor :assignment_id, :participants, :teams, :max_team_size, :student_review_num, :submission_review_num, :calibrated_artifacts_num, :uncalibrated_artifacts_num, :teams_with_calibrated_artifacts, :teams_with_uncalibrated_artifacts
 		
