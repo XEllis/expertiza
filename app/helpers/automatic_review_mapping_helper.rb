@@ -54,8 +54,7 @@ module AutomaticReviewMappingHelper
 
     	def assign_reviews_for_artifacts_num_not_zero(obj,params,flash)
     		
-    		@teams_with_calibrated_artifacts = []
-      		@teams_with_uncalibrated_artifacts = []
+    	
 
       		ReviewResponseMap.where(reviewed_object_id: @assignment_id, calibrate_to: 1).each do |response_map|
         	@teams_with_calibrated_artifacts << AssignmentTeam.find(response_map.reviewee_id)
