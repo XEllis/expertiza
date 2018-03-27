@@ -22,6 +22,7 @@ describe ReviewMappingController do
     stub_current_user(instructor, instructor.role.name, instructor.role)
   end
 
+
   describe '#add_calibration' do
     context 'when both participant and review_response_map have already existed' do
       it 'does not need to create new objects and redirects to responses#new maps' do
@@ -53,6 +54,33 @@ describe ReviewMappingController do
       end
     end
   end
+
+  describe '#select_reviewer' do
+    before(:each) do
+      allow(AssignmentTeam).to receive(:find).with('1').and_return(team)
+      @params = {
+        contributor_id: 1
+      }
+    end
+    it " sets the values of the contributor" do
+        post :select_reviewer, @params
+        expect(assigns(:contributor)).to eq(team)
+      end
+  end
+
+  describe '#select_metareviewer' do
+    before(:each) do
+      allow(ResponseMap).to receive(:find).with('1').and_return(review_response_map)
+      @params = {
+        id: 1
+      }
+    end
+    it 'Selects the metareviewer' do
+      post :select_metareviewer, @params
+      expect(assigns(:mapping)).to eq(review_response_map)
+    end
+  end
+
 
   describe '#add_reviewer and #get_reviewer' do
     before(:each) do
